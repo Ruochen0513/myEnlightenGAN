@@ -54,7 +54,7 @@ patchD_3: 0
 patchSize: 64
 patch_vgg: False
 phase: test
-resize_or_crop: 'no'
+resize_or_crop: no
 results_dir: ./results/
 self_attention: True
 serial_batches: False

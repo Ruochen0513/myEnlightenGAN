@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+    <title>处理结果</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .image-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .image-box {
+            flex: 1;
+            margin: 0 10px;
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .back-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+        }
+        .back-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>处理结果</h1>
+    <div class="image-container">
+        <div class="image-box">
+            <h3>原始图片</h3>
+            <img src="{{ url_for('uploaded_file', filename=original) }}">
+        </div>
+        <div class="image-box">
+            <h3>处理后图片</h3>
+            <img src="{{ url_for('result_file', filename=result) }}">
+        </div>
+    </div>
+    <a href="/" class="back-btn">返回上传页面</a>
+</body>
+</html> 
