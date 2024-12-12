@@ -3,5 +3,5 @@
 > ```python
 > python scripts/script.py --predict
 > ```
-> the result will be saved in the folder ./use_decom_dataset/result
+> the result will be saved in the folder ./use_decom_dataset/result </br>
 >  2.Just run the app.py, then open the website: http://localhost:5000/, you can upload the low-light pic and get the result.
