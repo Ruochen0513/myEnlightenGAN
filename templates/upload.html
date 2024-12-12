@@ -5,41 +5,265 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
-        .upload-form {
-            border: 2px dashed #ccc;
-            padding: 20px;
-            text-align: center;
+        .container {
+            display: flex;
+            justify-content: space-between;
             margin: 20px 0;
         }
-        .submit-btn {
+        .camera-container {
+            flex: 1;
+            margin-right: 20px;
+        }
+        .controls-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #video {
+            width: 100%;
+            max-width: 640px;
+            border: 2px solid #ccc;
+        }
+        #canvas {
+            display: none;
+        }
+        #preview {
+            max-width: 320px;
+            border: 2px solid #ccc;
+            margin-top: 10px;
+            display: none;
+        }
+        .btn {
             background-color: #4CAF50;
             color: white;
-            padding: 10px 20px;
+            padding: 15px 30px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin-top: 10px;
+            font-size: 16px;
+            margin: 10px 0;
+            width: 200px;
         }
-        .submit-btn:hover {
+        .btn:hover {
             background-color: #45a049;
+        }
+        .upload-section {
+            text-align: center;
+            padding: 20px;
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .file-input {
+            margin-bottom: 10px;
         }
         h1 {
             text-align: center;
+        }
+        .or-divider {
+            text-align: center;
+            margin: 20px 0;
+            color: #666;
+            position: relative;
+        }
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 45%;
+            height: 1px;
+            background-color: #ccc;
+        }
+        .or-divider::before {
+            left: 0;
+        }
+        .or-divider::after {
+            right: 0;
+        }
+        .preview-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .preview-label {
+            display: block;
+            margin-bottom: 10px;
+            color: #666;
+        }
+        .camera-preview-section {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+        .camera-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 20px;
+        }
+        .btn-processing {
+            background-color: #FFA500;  /* 黄色 */
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
     <h1>图片增强处理</h1>
-    <div class="upload-form">
-        <form method="post" enctype="multipart/form-data">
-            <input type="file" name="file" accept=".png,.jpg,.jpeg">
-            <br>
-            <input type="submit" value="开始处理" class="submit-btn">
-        </form>
+    <div class="container">
+        <div class="camera-container">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+        <div class="controls-container">
+            <div class="upload-section">
+                <form id="upload-form" method="post" enctype="multipart/form-data">
+                    <input type="file" name="file" accept=".png,.jpg,.jpeg" class="file-input" required>
+                    <button type="submit" class="btn" disabled>上传并处理</button>
+                </form>
+            </div>
+            <div class="or-divider">或</div>
+            <div class="camera-preview-section">
+                <div class="camera-buttons">
+                    <button id="capture" class="btn">拍照</button>
+                    <button id="process" class="btn" style="display: none;">处理图片</button>
+                </div>
+                <div class="preview-container">
+                    <span class="preview-label" style="display: none;">预览图片</span>
+                    <img id="preview" alt="预览">
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const preview = document.getElementById('preview');
+        const captureButton = document.getElementById('capture');
+        const processButton = document.getElementById('process');
+        const uploadForm = document.getElementById('upload-form');
+        const context = canvas.getContext('2d', { alpha: false });
+        let capturedBlob = null;
+
+        // 添加文件输入验证
+        const fileInput = document.querySelector('input[type="file"]');
+        const uploadButton = uploadForm.querySelector('button[type="submit"]');
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                uploadButton.disabled = false;  // 有文件时启用按钮
+            } else {
+                uploadButton.disabled = true;   // 无文件时禁用按钮
+            }
+        });
+
+        // 启动摄像头
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("无法访问摄像头: ", err);
+                alert("无法访问摄像头，请确保已授予摄像头权限。");
+            }
+        }
+
+        // 处理文件上传
+        uploadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(uploadForm);
+            const submitButton = uploadForm.querySelector('button[type="submit"]');
+            
+            // 再次检查是否有文件
+            if (!fileInput.files.length) {
+                alert('请选择要上传的图片');
+                return;
+            }
+            
+            // 改变按钮状态
+            submitButton.textContent = '处理中';
+            submitButton.classList.add('btn-processing');
+            submitButton.disabled = true;
+            
+            fetch('/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(html => {
+                document.documentElement.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('上传失败:', error);
+                alert('图片上传失败，请重试');
+                // 恢复按钮状态
+                submitButton.textContent = '上传并处理';
+                submitButton.classList.remove('btn-processing');
+                submitButton.disabled = false;
+            });
+        });
+
+        // 拍照
+        captureButton.addEventListener('click', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            context.fillStyle = '#FFFFFF';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            canvas.toBlob((blob) => {
+                capturedBlob = blob;
+                preview.src = URL.createObjectURL(blob);
+                preview.style.display = 'block';
+                processButton.style.display = 'block';
+                document.querySelector('.preview-label').style.display = 'block';
+            }, 'image/png', 1.0);
+        });
+
+        // 处理图片
+        processButton.addEventListener('click', () => {
+            if (capturedBlob) {
+                // 改变按钮状态
+                processButton.textContent = '处理中';
+                processButton.classList.add('btn-processing');
+                processButton.disabled = true;
+
+                const formData = new FormData();
+                formData.append('file', capturedBlob, 'capture.png');
+
+                fetch('/', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.text())
+                .then(html => {
+                    document.documentElement.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('上传失败:', error);
+                    alert('图片上传失败，请重试');
+                    // 恢复按钮状态
+                    processButton.textContent = '处理图片';
+                    processButton.classList.remove('btn-processing');
+                    processButton.disabled = false;
+                });
+            }
+        });
+
+        // 页面加载时启动摄像头
+        startCamera();
+    </script>
 </body>
 </html> 
