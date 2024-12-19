@@ -29,6 +29,7 @@
             width: 100%;
             max-width: 640px;
             border: 2px solid #ccc;
+            filter: brightness(100%);
         }
         #canvas {
             display: none;
@@ -120,8 +121,8 @@
             <video id="video" autoplay playsinline></video>
             <canvas id="canvas"></canvas>
             <label for="brightness">亮度</label>
-            <input type="range" id="brightness" min="0" max="100" value="50">
-            <span id="brightness-value">50%</span>
+            <input type="range" id="brightness" min="0" max="100" value="100">
+            <span id="brightness-value">100%</span>
         </div>
         <div class="controls-container">
             <div class="upload-section">
@@ -167,6 +168,17 @@
                 uploadButton.disabled = true;   // 无文件时禁用按钮
             }
         });
+        
+        // 恢复亮度设置
+        function restoreBrightnessSetting() {
+            const savedBrightness = sessionStorage.getItem('brightness');
+            if (savedBrightness) {
+                brightnessSlider.value = savedBrightness;
+                video.style.filter = `brightness(${savedBrightness}%)`;
+                brightnessValue.textContent = `${savedBrightness}%`;
+            }
+        }
+
 
         // 启动摄像头
         async function startCamera() {
@@ -188,6 +200,7 @@
         function updateBrightness() {
             const brightness = brightnessSlider.value / 100;
             brightnessValue.textContent = `${brightnessSlider.value}%`;
+            video.style.filter = `brightness(${brightnessSlider.value}%)`;
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
@@ -203,8 +216,9 @@
             }
 
             context.putImageData(imageData, 0, 0);
+            // 保存亮度设置
+            sessionStorage.setItem('brightness', brightnessSlider.value);
         }
-
         // 处理文件上传
         uploadForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -285,9 +299,11 @@
 
         // 页面加载时启动摄像头
         startCamera();
-
+        // 页面加载时恢复亮度设置
+        window.addEventListener('load', restoreBrightnessSetting);
         // 监听亮度调节条的变化
         brightnessSlider.addEventListener('input', updateBrightness);
+
     </script>
 </body>
 </html>
